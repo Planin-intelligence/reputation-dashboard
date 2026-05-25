@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="pt-br" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planin Intelligence — Reputation Monitoring</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300..900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+/* ===== DESIGN TOKENS — Planin ===== */
+:root, [data-theme="light"] {
+  --color-bg:             #f5f5f5;
+  --color-surface:        #ffffff;
+  --color-surface-2:      #fafafa;
+  --color-surface-offset: #f0ede8;
+  --color-surface-dynamic:#e6e4df;
+  --color-divider:        #52525229;
+  --color-border:         #52525229;
+  --color-text:           #1E1E1E;
+  --color-text-muted:     #6b6966;
+  --color-text-faint:     #b5b4b0;
+  --color-primary:        #004A86;
+  --color-primary-hover:  #003d6e;
+  --color-primary-highlight: #e5f0f8;
+  --color-secondary:      #ED1164;
+  --color-secondary-hover:#c50e54;
+  --color-gradient:       linear-gradient(247deg, #684287 0%, #f2295b 100%);
+  --color-purple:         #684287;
+  --color-success:        #2d7a3a;
+  --color-success-highlight: #d4edd8;
+  --color-warning:        #a05a1a;
+  --color-warning-highlight: #fde8cc;
+  --color-error:          #b33040;
+  --color-error-highlight: #fcdde0;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --font-body: 'Figtree', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  --text-xs: clamp(0.75rem, 0.7rem + 0.2vw, 0.8125rem);
+  --text-sm: clamp(0.8125rem, 0.78rem + 0.25vw, 0.9375rem);
+  --text-base: clamp(0.9375rem, 0.9rem + 0.2vw, 1rem);
+  --text-lg: clamp(1rem, 0.95rem + 0.3vw, 1.125rem);
+  --text-xl: clamp(1.125rem, 1rem + 0.6vw, 1.375rem);
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem;
+  --space-12: 3rem;
+}
+[data-theme="dark"] {
+  --color-bg:             #0a0a0a;
+  --color-surface:        #141414;
+  --color-surface-2:      #1a1a1a;
+  --color-surface-offset: #1e1d1b;
+  --color-surface-dynamic:#252420;
+  --color-divider:        #2e2d2b;
+  --color-border:         #2e2d2b;
+  --color-text:           #e2e1de;
+  --color-text-muted:     #7a7976;
+  --color-text-faint:     #4a4947;
+  --color-primary:        #4fa8d4;
+  --color-primary-hover:  #6bbae0;
+  --color-primary-highlight: #1a3040;
+  --color-secondary:      #ED1164;
+  --color-secondary-hover:#ff3d7a;
+  --color-gradient:       linear-gradient(247deg, #684287 0%, #f2295b 100%);
+  --color-purple:         #684287;
+  --color-success:        #5bbf68;
+  --color-success-highlight: #1a3020;
+  --color-warning:        #e89040;
+  --color-warning-highlight: #302210;
+  --color-error:          #e05060;
+  --color-error-highlight: #2a1418;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  background: var(--color-bg);
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 220px 1fr;
+  grid-template-areas: "sidebar header" "sidebar main";
+  transition: background 0.2s, color 0.2s;
+}
+button { cursor: pointer; border: none; background: none; font: inherit; color: inherit; }
+/* ===== SIDEBAR ===== */
+.sidebar {
+  grid-area: sidebar;
+  background: var(--color-primary);
+  border-right: 1px solid var(--color-border);
+  display: flex; flex-direction: column;
+  padding: var(--space-6) var(--space-4);
+  gap: var(--space-6);
+  position: sticky; top: 0; height: 100dvh; overflow-y: auto;
+}
+.logo-mark {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+}
+.logo-icon {
+  width: 32px; height: 32px; border-radius: var(--radius-md);
+  background: var(--color-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-icon svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2.5; }
+.logo-text { line-height: 1.2; }
+.logo-text strong { display: block; font-size: var(--text-sm); font-weight: 700; letter-spacing: -0.01em; }
+.logo-text span { font-size: var(--text-xs); color: rgba(255,255,255,0.7); }
+.logo-text strong { color: #fff; }
+nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-section-label {
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  color: rgba(255,255,255,0.5); padding: var(--space-3) var(--space-2) var(--space-1);
+}
+.nav-item {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3); border-radius: var(--radius-md);
+  color: rgba(255,255,255,0.7); font-size: var(--text-xs); font-weight: 500;
+  text-decoration: none; transition: background 0.15s, color 0.15s; cursor: pointer;
+}
+.nav-item:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.nav-item.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 600; border-right: 3px solid var(--color-secondary); }
+.nav-item svg { width: 16px; height: 16px; flex-shrink: 0; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sidebar-footer {
+  margin-top: auto;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  padding-top: var(--space-4);
+}
+.monitored-tag {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: rgba(255,255,255,0.1); border-radius: var(--radius-md);
+  padding: var(--space-3); font-size: var(--text-xs);
+}
+.tag-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--color-success); box-shadow: 0 0 6px var(--color-success); flex-shrink: 0; }
+/* ===== HEADER ===== */
+.header {
+  grid-area: header;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 var(--space-8);
+  height: 56px;
+  position: sticky; top: 0; z-index: 10;
+  border-top: 3px solid transparent;
+  border-image: var(--color-gradient) 1;
+}
+.header-left { display: flex; align-items: center; gap: var(--space-3); }
+.breadcrumb { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-xs); color: var(--color-text-muted); }
+.breadcrumb strong { color: var(--color-text); font-weight: 600; }
+.header-right { display: flex; align-items: center; gap: var(--space-3); }
+.btn-icon {
+  width: 36px; height: 36px; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--color-text-muted); transition: background 0.15s, color 0.15s;
+}
+.btn-icon:hover { background: var(--color-surface-offset); color: var(--color-text); }
+.btn-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.status-pill {
+  display: flex; align-items: center; gap: var(--space-2);
+  background: var(--color-surface-offset); border-radius: var(--radius-full, 9999px);
+  padding: var(--space-1) var(--space-3); font-size: var(--text-xs); font-weight: 500;
+}
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--color-success); animation: pulse 2s ease-in-out infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.85)} }
+/* ===== MAIN ===== */
+main {
+  grid-area: main;
+  overflow-y: auto;
+  padding: var(--space-8);
+  display: flex; flex-direction: column; gap: var(--space-6);
+  background: var(--color-bg);
+}
+.page-title { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.02em; }
+.page-subtitle { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-1); }
+.page-title { color: var(--color-primary); }
+/* ===== KPI GRID ===== */
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
+.kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5) var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s;
+}
+.kpi-card:hover { box-shadow: var(--shadow-md); border-color: var(--color-purple); }
+.kpi-label {
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--color-text-faint);
+  display: flex; align-items: center; gap: var(--space-1);
+}
+/* ===== HELP TOOLTIPS ===== */
+.help-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px;
+  cursor: help; position: relative; flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.help-icon:hover { opacity: 0.7; }
+.help-icon img { width: 16px; height: 16px; display: block; }
+.help-icon::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: var(--color-primary); color: #fff;
+  font-size: 0.72rem; font-weight: 400; text-transform: none; letter-spacing: 0;
+  white-space: normal; width: 220px; padding: var(--space-3); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md); text-align: left; line-height: 1.4;
+  opacity: 0; visibility: hidden; transition: opacity 0.15s, visibility 0.15s;
+  z-index: 100; pointer-events: none;
+}
+.help-icon:hover::after { opacity: 1; visibility: visible; }
+.help-icon::before {
+  content: ''; position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%);
+  border: 5px solid transparent; border-top-color: var(--color-primary);
+  opacity: 0; visibility: hidden; transition: opacity 0.15s, visibility 0.15s;
+  z-index: 100;
+}
+.help-icon:hover::before { opacity: 1; visibility: visible; }
+.help-icon--down::after { bottom: auto; top: calc(100% + 6px); }
+.help-icon--down::before { bottom: auto; top: calc(100% + 2px); border-top-color: transparent; border-bottom-color: var(--color-primary); }
+.kpi-value {
+  font-size: 1.625rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+.kpi-delta { display: flex; align-items: center; gap: var(--space-1); font-size: var(--text-xs); font-weight: 500; }
+.delta-up { color: var(--color-success); }
+.delta-neutral { color: var(--color-text-muted); }
+.delta-down { color: var(--color-error); }
+/* Risk card special */
+.risk-badge {
+  display: inline-flex; align-items: center; padding: 2px var(--space-2);
+  border-radius: var(--radius-sm); font-size: 0.65rem; font-weight: 700; letter-spacing: 0.05em;
+}
+.risk-low { background: var(--color-success-highlight); color: var(--color-success); }
+.risk-medium { background: var(--color-warning-highlight); color: var(--color-warning); }
+.risk-high { background: var(--color-error-highlight); color: var(--color-error); }
+/* ===== CHARTS ROW ===== */
+.charts-row { display: grid; grid-template-columns: 2fr 1fr; gap: var(--space-4); }
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-5) var(--space-6) 0;
+}
+.panel-title { font-size: var(--text-sm); font-weight: 700; color: var(--color-primary); }
+.panel-action { font-size: var(--text-xs); color: var(--color-secondary); font-weight: 500; cursor: pointer; }
+.panel-action:hover { text-decoration: underline; }
+.panel-body { padding: var(--space-4) var(--space-6) var(--space-6); }
+.chart-container { position: relative; height: 240px; }
+/* ===== RISK GAUGE ===== */
+.gauge-wrap { display: flex; flex-direction: column; align-items: center; padding: var(--space-4) var(--space-6) var(--space-6); }
+.gauge-container { position: relative; width: 160px; height: 90px; }
+.gauge-value {
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; text-align: center;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.gauge-label { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-3); text-align: center; }
+.risk-detail { width: 100%; margin-top: var(--space-4); }
+.risk-row { display: flex; justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--color-divider); }
+.risk-row:last-child { border-bottom: none; }
+.risk-row-label { font-size: var(--text-xs); color: var(--color-text-muted); }
+.risk-row-val { font-size: var(--text-xs); font-weight: 600; }
+/* ===== AI ANALYSIS ===== */
+.ai-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); }
+.ai-panel-inner { padding: var(--space-5) var(--space-6); }
+.ai-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-purple); margin-bottom: var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+.ai-label-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--color-gradient); }
+.ai-text { font-size: var(--text-xs); line-height: 1.65; color: var(--color-text-muted); max-width: 100%; }
+.ai-text em { font-style: normal; color: var(--color-text); font-weight: 500; }
+/* ===== DATA TABLE ===== */
+.table-panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); overflow: hidden; }
+.table-header { padding: var(--space-5) var(--space-6); display: flex; align-items: center; justify-content: space-between; }
+table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+thead th {
+  padding: var(--space-3) var(--space-4); text-align: left;
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--color-text-faint); background: var(--color-surface-offset);
+  border-bottom: 1px solid var(--color-border);
+  width: calc(100% / 6);
+}
+tbody tr { border-bottom: 1px solid var(--color-divider); transition: background 0.12s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--color-surface-offset); }
+tbody td { padding: var(--space-3) var(--space-4); font-size: var(--text-xs); font-variant-numeric: tabular-nums; text-align: left; }
+.td-mono { font-family: var(--font-mono); font-size: 0.7rem; color: var(--color-text-muted); }
+/* ===== CONNECTION STATUS ===== */
+.connect-bar {
+  background: var(--color-surface-offset); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-4) var(--space-6);
+  display: flex; align-items: center; gap: var(--space-4);
+  font-size: var(--text-xs);
+}
+.connect-bar .url-input {
+  flex: 1; background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--color-text);
+  outline: none; transition: border-color 0.15s;
+}
+.connect-bar .url-input:focus { border-color: var(--color-purple); }
+.btn-primary {
+  background: var(--color-gradient); color: #fff; border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4); font-size: var(--text-xs); font-weight: 600;
+  transition: opacity 0.2s, box-shadow 0.2s; white-space: nowrap;
+  border: none;
+}
+.btn-primary:hover { opacity: 0.9; box-shadow: 0 0 10px rgba(0,0,0,0.12); }
+.connect-status { font-size: var(--text-xs); color: var(--color-text-muted); display: flex; align-items: center; gap: var(--space-2); }
+/* ===== LOADING SKELETON ===== */
+@keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface-offset) 25%, var(--color-surface-dynamic) 50%, var(--color-surface-offset) 75%);
+  background-size: 200% 100%; animation: shimmer 1.5s ease-in-out infinite; border-radius: var(--radius-sm);
+}
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  body { grid-template-columns: 60px 1fr; }
+  .logo-text, .nav-item span, .sidebar-footer .monitored-tag span { display: none; }
+  .nav-item { justify-content: center; padding: var(--space-3); }
+  .logo-mark { justify-content: center; }
+  .header { padding: 0 var(--space-4); }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .header-right .btn-primary span { display: none; }
+}
+@media (max-width: 768px) {
+  body { grid-template-columns: 1fr; grid-template-areas: "header" "main"; }
+  .sidebar { display: none; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: var(--space-3); }
+  .kpi-card { padding: var(--space-4); }
+  .kpi-value { font-size: 1.25rem; }
+  .charts-row { grid-template-columns: 1fr; }
+  main { padding: var(--space-3); gap: var(--space-4); }
+  .header { padding: 0 var(--space-3); height: 48px; }
+  .header-right .btn-primary { padding: var(--space-1) var(--space-3) !important; font-size: 0 !important; }
+  .header-right .btn-primary svg { width: 16px; height: 16px; }
+  .status-pill { font-size: 0.6rem; padding: var(--space-1) var(--space-2); }
+  .breadcrumb span:first-child { display: none; }
+  .connect-bar { flex-direction: column; gap: var(--space-3); padding: var(--space-3); }
+  .connect-bar .url-input { width: 100%; }
+  .brand-bar { flex-direction: column; gap: var(--space-2); text-align: center; }
+  .page-title { font-size: var(--text-lg); }
+  table { font-size: 0.6rem; }
+  thead th, tbody td { padding: var(--space-2); }
+}
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+  .kpi-card { padding: var(--space-3); }
+  .kpi-label { font-size: 0.55rem; }
+  .kpi-value { font-size: 1rem; }
+  .kpi-delta { font-size: 0.6rem; }
+  main { padding: var(--space-2); gap: var(--space-3); }
+  .chart-container { height: 180px; }
+  .panel-header { padding: var(--space-3) var(--space-4) 0; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+  .panel-body { padding: var(--space-3) var(--space-4) var(--space-4); }
+  .gauge-container { width: 120px; height: 70px; }
+  .gauge-value { font-size: 1.5rem; }
+  .header-right .status-pill .pulse { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<aside class="sidebar">
+  <div class="logo-mark">
+    <div class="logo-icon" style="background:rgba(255,255,255,0.15); width:100%; height:auto; padding:10px 12px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center;">
+      <img src="https://planin.com/wp-content/uploads/2025/10/logo_planin.svg" alt="Planin" style="height:30px; width:auto; display:block;" />
+    </div>
+
+  </div>
+
+  <nav>
+    <div class="nav-section-label">Visão Geral</div>
+    <a class="nav-item active" href="#">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>Histórico</span>
+    </a>
+    <div class="nav-section-label">Análise</div>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      <span>Alertas</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>Relatórios</span>
+    </a>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      <span>Exportar</span>
+    </a>
+    <div class="nav-section-label">Sistema</div>
+    <a class="nav-item" href="#">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+      <span>Configurar</span>
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="monitored-tag">
+      <div class="tag-dot" style="background:var(--color-secondary);box-shadow:0 0 6px var(--color-secondary);"></div>
+      <span style="font-size:var(--text-xs); color:rgba(255,255,255,0.7);">Monitorando: <strong style="color:#fff;">@ClimaAcido</strong></span>
+    </div>
+  </div>
+</aside>
+
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-left">
+    <div class="breadcrumb">
+      <span>Planin Intelligence</span>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      <strong>Reputation Monitoring</strong>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="btn-primary" onclick="refreshData()" style="font-size:var(--text-xs); padding:var(--space-1) var(--space-4); height:32px; display:flex; align-items:center; gap:var(--space-1);">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      <span>Conectar</span>
+    </button>
+    <div class="status-pill">
+      <div class="pulse"></div>
+      <span id="status-label">Conectando...</span>
+    </div>
+    <button class="btn-icon" data-theme-toggle aria-label="Alternar tema">
+      <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+  <!-- Page Header -->
+  <div>
+    <h1 class="page-title">Monitoramento de Reputação</h1>
+    <p class="page-subtitle" id="last-update">Última atualização: —</p>
+  </div>
+
+  <!-- Connection Bar -->
+  <div class="connect-bar" style="display:none;">
+    <input type="text" class="url-input" id="n8n-url"
+      value="https://n8n.shinnishi.online/webhook/api/reputacao/status"
+      placeholder="https://n8n.shinnishi.online/webhook/api/status" />
+  </div>
+
+  <!-- Planin Brand Bar -->
+  <div class="brand-bar" style="display:flex;align-items:center;justify-content:space-between;padding:var(--space-3) var(--space-6);background:var(--color-primary);border:none;border-radius:var(--radius-lg);font-size:var(--text-xs);color:rgba(255,255,255,0.8);">
+    <span style="display:flex;align-items:center;gap:var(--space-2);">
+      <span style="width:8px;height:8px;border-radius:50%;background:var(--color-gradient);"></span>
+      <strong style="color:#fff;">Planin</strong> — Intelligence
+    </span>
+    <span>Tempo Real</span>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Curtidas <span class="help-icon" data-tip="Total de curtidas recebidas. Indica o alcance e aprovação do conteúdo publicano período."><img src="informacao.png" alt="info" /></span></div>
+      <div class="kpi-value" id="kpi-curtidas">—</div>
+      <div class="kpi-delta" id="delta-curtidas"><span class="delta-neutral">Aguardando dados</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Comentários <span class="help-icon" data-tip="Total de comentários recebidos. Mostra o quanto o conteúdo gerou conversa e engajamento."><img src="informacao.png" alt="info" /></span></div>
+      <div class="kpi-value" id="kpi-comentarios">—</div>
+      <div class="kpi-delta" id="delta-comentarios"><span class="delta-neutral">Aguardando dados</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Reposts <span class="help-icon" data-tip="Total de compartilhamentos. Quanto mais compartilhamentos, maior o alcance orgânico da publicação."><img src="informacao.png" alt="info" /></span></div>
+      <div class="kpi-value" id="kpi-reposts">—</div>
+      <div class="kpi-delta" id="delta-reposts"><span class="delta-neutral">Aguardando dados</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Views <span class="help-icon" data-tip="Total de visualizações. Quantas vezes o conteúdo foi visto por usuários no período."><img src="informacao.png" alt="info" /></span></div>
+      <div class="kpi-value" id="kpi-views">—</div>
+      <div class="kpi-delta" id="delta-views"><span class="delta-neutral">Aguardando dados</span></div>
+    </div>
+  </div>
+
+  <!-- Charts Row -->
+  <div class="charts-row">
+    <!-- Main Chart -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title" style="display:flex;align-items:center;gap:var(--space-2);">Engajamento Total — Últimas 24h <span class="help-icon help-icon--down" data-tip="Soma de curtidas + comentários + reposts ao longo do tempo. Mostra a evolução da interação com o perfil monitorado."><img src="informacao.png" alt="info" /></span></span>
+        <span class="panel-action" onclick="exportChart()">↓ Exportar PNG</span>
+      </div>
+      <div class="panel-body">
+        <div class="chart-container">
+          <canvas id="mainChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Risk Gauge -->
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title" style="display:flex;align-items:center;gap:var(--space-2);">Nível de Risco <span class="help-icon help-icon--down" data-tip="Score de 0 a 10 calculado automaticamente. Quanto menor, mais segura está a reputação. Leva em conta volume, velocidade e sentimento das menções."><img src="informacao.png" alt="info" /></span></span>
+        <span class="risk-badge risk-low" id="risk-badge">BAIXO</span>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-container">
+          <canvas id="gaugeChart" width="160" height="90"></canvas>
+          <div class="gauge-value" id="gauge-value" style="color: var(--color-success)">3<span style="font-size:1rem; font-weight:400; color:var(--color-text-faint)">/10</span></div>
+        </div>
+        <div class="gauge-label" style="display:flex;align-items:center;gap:var(--space-1);">Score calculado em tempo real <span class="help-icon" data-tip="Quanto menor o score, melhor. 0-3: risco baixo. 4-6: risco médio. 7-10: risco alto. A análise considera sentimentos, velocidade e volume."><img src="informacao.png" alt="info" /></span></div>
+        <div class="risk-detail">
+          <div class="risk-row">
+            <span class="risk-row-label" style="display:flex;align-items:center;gap:var(--space-1);">Variação / 24h <span class="help-icon" data-tip="Diferença no total de engajamento em relação à hora anterior. Positivo = aumentou. Negativo = diminuiu."><img src="informacao.png" alt="info" /></span></span>
+            <span class="risk-row-val" id="risk-variacao">—</span>
+          </div>
+          <div class="risk-row">
+            <span class="risk-row-label" style="display:flex;align-items:center;gap:var(--space-1);">Velocidade <span class="help-icon" data-tip="Ritmo das interações nas redes. Normal = volume esperado. Elevada = acima do comum. Crítica = pico repentino."><img src="informacao.png" alt="info" /></span></span>
+            <span class="risk-row-val" id="risk-velocidade">—</span>
+          </div>
+          <div class="risk-row">
+            <span class="risk-row-label" style="display:flex;align-items:center;gap:var(--space-1);">Tendência <span class="help-icon" data-tip="Direção do engajamento. Crescendo = mais interações. Caindo = menos interações. Estável = sem variação significativa."><img src="informacao.png" alt="info" /></span></span>
+            <span class="risk-row-val" id="risk-tendencia">—</span>
+          </div>
+          <div class="risk-row">
+            <span class="risk-row-label" style="display:flex;align-items:center;gap:var(--space-1);">Último Score <span class="help-icon" data-tip="Nota mais recente atribuída automaticamente. Quanto menor, melhor. Baseada em análise de sentimento e volume."><img src="informacao.png" alt="info" /></span></span>
+            <span class="risk-row-val" id="risk-score-ia" style="color:var(--color-success);">3/10</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Analysis -->
+  <div class="ai-panel">
+    <div class="ai-panel-inner">
+      <div class="ai-label" style="display:flex;align-items:center;gap:var(--space-2);"><div class="ai-label-dot"></div> Análise Automática <span class="help-icon help-icon--down" data-tip="Resumo gerado automaticamente explicando o cenário atual de reputação, tendências identificadas e recomendações de ação."><img src="informacao.png" alt="info" /></span></div>
+      <p class="ai-text" id="ai-text">
+        <em>Aguardando dados do n8n...</em> Configure o endpoint acima com o URL do seu webhook e clique em Conectar para carregar a análise em tempo real.
+      </p>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-panel">
+    <div class="table-header">
+      <span class="panel-title" style="display:flex;align-items:center;gap:var(--space-2);">Histórico (a cada 2h) <span class="help-icon help-icon--down" data-tip="Tabela com todos os dados organizados a cada 2 horas nas últimas 24h. Útil para consultar variações ao longo do dia."><img src="informacao.png" alt="info" /></span></span>
+      <button class="btn-primary" style="font-size:var(--text-xs);" onclick="exportCSV()">↓ Exportar CSV</button>
+    </div>
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Horário</th>
+            <th>Curtidas <span class="help-icon help-icon--down" data-tip="Total de curtidas recebidas naquele horário."><img src="informacao.png" alt="info" /></span></th>
+            <th>Comentários <span class="help-icon help-icon--down" data-tip="Total de comentários registrados naquele horário."><img src="informacao.png" alt="info" /></span></th>
+            <th>Reposts <span class="help-icon help-icon--down" data-tip="Compartilhamentos realizados naquele horário."><img src="informacao.png" alt="info" /></span></th>
+            <th>Views <span class="help-icon help-icon--down" data-tip="Visualizações acumuladas naquele horário."><img src="informacao.png" alt="info" /></span></th>
+            <th>Engajamento <span class="help-icon help-icon--down" data-tip="Soma de curtidas + comentários + reposts naquele horário."><img src="informacao.png" alt="info" /></span></th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="6" style="text-align:center; color:var(--color-text-faint); padding: 2rem;">Sem dados. Conecte ao n8n para carregar o histórico.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ===== THEME TOGGLE =====
+(function(){
+  const t = document.querySelector('[data-theme-toggle]');
+  const r = document.documentElement;
+  let d = r.getAttribute('data-theme') || 'dark';
+  const sunSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>';
+  const moonSvg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+  if(t) {
+    t.innerHTML = d === 'dark' ? sunSvg : moonSvg;
+    t.addEventListener('click', () => {
+      d = d === 'dark' ? 'light' : 'dark';
+      r.setAttribute('data-theme', d);
+      t.innerHTML = d === 'dark' ? sunSvg : moonSvg;
+      updateChartColors();
+    });
+  }
+})();
+
+// ===== STATE =====
+let allData = [];
+let mainChart = null;
+let gaugeChart = null;
+
+// ===== HELPERS =====
+function fmt(n) {
+  if(n === null || n === undefined) return '—';
+  return Number(n).toLocaleString('pt-BR');
+}
+function fmtDelta(curr, prev, suffix='') {
+  if(prev === null || prev === undefined) return '<span class="delta-neutral">—</span>';
+  const d = curr - prev;
+  const pct = prev > 0 ? ((d/prev)*100).toFixed(1) : '0.0';
+  if(d > 0) return `<span class="delta-up">▲ +${fmt(d)} (${pct}%)${suffix}</span>`;
+  if(d < 0) return `<span class="delta-down">▼ ${fmt(d)} (${pct}%)${suffix}</span>`;
+  return `<span class="delta-neutral">— Estável</span>`;
+}
+function getChartColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    primary: isDark ? '#4fa8d4' : '#004A86',
+    secondary: '#ED1164',
+    purple: '#684287',
+    success: isDark ? '#5bbf68' : '#2d7a3a',
+    warning: isDark ? '#e89040' : '#a05a1a',
+    error:   isDark ? '#e05060' : '#b33040',
+    grid:    isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    text:    isDark ? '#7a7976' : '#6b6966',
+    bg:      isDark ? '#141414' : '#ffffff',
+  };
+}
+
+// ===== GAUGE CHART =====
+function drawGauge(score) {
+  const c = document.getElementById('gaugeChart');
+  const ctx = c.getContext('2d');
+  ctx.clearRect(0, 0, 160, 90);
+  const cx = 80, cy = 85, r = 68;
+  const startAngle = Math.PI;
+  const totalAngle = Math.PI;
+  const col = getChartColors();
+
+  // Background arc
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, startAngle + totalAngle);
+  ctx.strokeStyle = col.grid.replace('0.06','0.15');
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Color arc
+  const fillAngle = (score / 10) * totalAngle;
+  let arcColor;
+  if(score <= 3) arcColor = col.success;
+  else if(score <= 6) arcColor = col.warning;
+  else arcColor = col.error;
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startAngle, startAngle + fillAngle);
+  ctx.strokeStyle = arcColor;
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // Update text color
+  document.getElementById('gauge-value').style.color = arcColor;
+}
+
+// ===== MAIN CHART =====
+function buildMainChart(labels, data) {
+  const col = getChartColors();
+  const canvas = document.getElementById('mainChart');
+  if(mainChart) mainChart.destroy();
+  const ctx2 = canvas.getContext('2d');
+  const grad = ctx2.createLinearGradient(0, 0, 0, 240);
+  grad.addColorStop(0, col.purple + '40');
+  grad.addColorStop(1, col.secondary + '0A');
+  mainChart = new Chart(ctx2, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Engajamento Total',
+        data,
+        borderColor: col.primary,
+        backgroundColor: grad,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 2.5,
+        pointRadius: 3,
+        pointBackgroundColor: col.bg,
+        pointBorderColor: col.primary,
+        pointHoverRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: col.bg,
+          borderColor: col.grid,
+          borderWidth: 1,
+          titleColor: col.text,
+          bodyColor: col.primary,
+          padding: 10,
+          callbacks: {
+            label: ctx => '  Engajamento: ' + fmt(ctx.raw)
+          }
+        }
+      },
+      scales: {
+        y: {
+          grid: { color: col.grid, drawBorder: false },
+          ticks: { color: col.text, font: { size: 11, family: "'JetBrains Mono'" } }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: col.text, font: { size: 11 } }
+        }
+      }
+    }
+  });
+}
+
+function updateChartColors() {
+  if(!allData.length) return;
+  populateUI(allData);
+}
+
+// ===== POPULATE UI =====
+function populateUI(rows) {
+  allData = rows;
+  const latest = rows[0] || {};
+  const prev = rows[1] || null;
+
+  // KPIs
+  document.getElementById('kpi-curtidas').textContent = fmt(latest.curtidas);
+  document.getElementById('kpi-comentarios').textContent = fmt(latest.comentarios);
+  document.getElementById('kpi-reposts').textContent = fmt(latest.reposts);
+  document.getElementById('kpi-views').textContent = fmt(latest.views);
+
+  if(prev) {
+    document.getElementById('delta-curtidas').innerHTML = fmtDelta(latest.curtidas, prev.curtidas);
+    document.getElementById('delta-comentarios').innerHTML = fmtDelta(latest.comentarios, prev.comentarios);
+    document.getElementById('delta-reposts').innerHTML = fmtDelta(latest.reposts, prev.reposts);
+    document.getElementById('delta-views').innerHTML = fmtDelta(latest.views, prev.views);
+  }
+
+  // Risk
+  const risk = latest.risco_score ?? latest.risk_score ?? 3;
+  document.getElementById('gauge-value').childNodes[0].nodeValue = risk;
+  document.getElementById('risk-score-ia').textContent = risk + '/10';
+  drawGauge(risk);
+  const badge = document.getElementById('risk-badge');
+  if(risk <= 3) { badge.textContent = 'BAIXO'; badge.className = 'risk-badge risk-low'; }
+  else if(risk <= 6) { badge.textContent = 'MÉDIO'; badge.className = 'risk-badge risk-medium'; }
+  else { badge.textContent = 'ALTO'; badge.className = 'risk-badge risk-high'; }
+
+  // Risk details
+  const totalEng = (latest.curtidas||0) + (latest.comentarios||0) + (latest.reposts||0);
+  const totalEngPrev = prev ? ((prev.curtidas||0) + (prev.comentarios||0) + (prev.reposts||0)) : null;
+  const varHora = totalEngPrev ? totalEng - totalEngPrev : 0;
+  document.getElementById('risk-variacao').textContent = (varHora >= 0 ? '+' : '') + fmt(varHora);
+  const vel = latest.velocidade ?? (Math.abs(varHora) < 50 ? 'Normal' : Math.abs(varHora) < 200 ? 'Elevada' : 'Crítica');
+  document.getElementById('risk-velocidade').textContent = typeof vel === 'string' ? vel : fmt(vel) + '/h';
+  const tend = latest.tendencia ?? (varHora > 0 ? '↑ Crescendo' : varHora < 0 ? '↓ Caindo' : '→ Estável');
+  document.getElementById('risk-tendencia').textContent = tend;
+
+  // AI Text
+  if(latest.analise_ia || latest.ai_analysis) {
+    document.getElementById('ai-text').innerHTML = latest.analise_ia || latest.ai_analysis;
+  }
+
+  // Chart
+  const labels = rows.slice().reverse().map(r => {
+    try { return new Date(r.data || r.datetime || r.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'}); }
+    catch { return '—'; }
+  });
+  const engData = rows.slice().reverse().map(r =>
+    (r.curtidas||0) + (r.comentarios||0) + (r.reposts||0)
+  );
+  buildMainChart(labels, engData);
+
+  // Table (a cada 2 horas)
+  const tbody = document.getElementById('table-body');
+  if(!rows.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--color-text-faint);padding:2rem;">Sem registros.</td></tr>'; return; }
+  tbody.innerHTML = rows.filter((_, i) => i % 2 === 0).map((r) => {
+    const eng = (r.curtidas||0) + (r.comentarios||0) + (r.reposts||0);
+    let ts = '—';
+    try { ts = new Date(r.data || r.datetime || r.created_at).toLocaleString('pt-BR'); } catch{}
+    return `<tr>
+      <td class="td-mono">${ts}</td>
+      <td>${fmt(r.curtidas)}</td>
+      <td>${fmt(r.comentarios)}</td>
+      <td>${fmt(r.reposts)}</td>
+      <td>${fmt(r.views)}</td>
+      <td style="font-weight:600">${fmt(eng)}</td>
+    </tr>`;
+  }).join('');
+
+  // Status
+  document.getElementById('last-update').textContent = 'Última atualização: ' + new Date().toLocaleString('pt-BR');
+  document.getElementById('status-label').textContent = 'Ao Vivo';
+  document.getElementById('status-label').style.color = 'var(--color-secondary)';
+  document.getElementById('connect-msg').innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-success)" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Conectado com sucesso';
+}
+
+// ===== DEMO DATA (fallback) =====
+function loadDemoData() {
+  const base = { curtidas: 11200, comentarios: 520, reposts: 88, views: 94000 };
+  const rows = [];
+  for(let i = 23; i >= 0; i--) {
+    const d = new Date(Date.now() - i * 3600000);
+    rows.push({
+      id: 24-i, data: d.toISOString(),
+      curtidas: base.curtidas + Math.round((23-i) * 15 + Math.random()*20-10),
+      comentarios: base.comentarios + Math.round((23-i) * 1 + Math.random()*4-2),
+      reposts: base.reposts + Math.round((23-i) * 0.3 + Math.random()*2-1),
+      views: base.views + Math.round((23-i) * 250 + Math.random()*100),
+      risco_score: 3,
+      analise_ia: '<em>"Viés de crescimento controlado e orgânico. Ritmo de curtidas estável (+15/hora). Nenhum pico anormal detectado nas últimas 6h. Risco de crise: </em><strong>BAIXO</strong><em>. Recomendação: manter monitoramento padrão."</em><br><small style="color:var(--color-text-faint);">— Demonstração com dados simulados. Conecte ao n8n para dados reais.</small>'
+    });
+  }
+  populateUI(rows.reverse());
+  document.getElementById('status-label').textContent = 'Demo';
+  document.getElementById('connect-msg').innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-warning)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg> Modo demonstração — Configure o n8n';
+}
+
+// ===== FETCH REAL DATA =====
+async function refreshData() {
+  const url = document.getElementById('n8n-url').value.trim();
+  if(!url || url.includes('SEU-VPS-IP')) {
+    loadDemoData();
+    return;
+  }
+  document.getElementById('status-label').textContent = 'Atualizando...';
+  document.getElementById('connect-msg').innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted)" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Buscando dados...';
+  try {
+    const resp = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    const json = await resp.json();
+    // Accept array or {data: [...]} or {rows: [...]}
+    const rows = Array.isArray(json) ? json : (json.data || json.rows || json.result || []);
+    if(!rows.length) throw new Error('Nenhum dado retornado');
+    populateUI(rows);
+  } catch(e) {
+    document.getElementById('connect-msg').innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--color-error)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Erro: ${e.message}`;
+    document.getElementById('status-label').textContent = 'Offline';
+    loadDemoData();
+  }
+}
+
+// ===== EXPORT =====
+function exportChart() {
+  const canvas = document.getElementById('mainChart');
+  const link = document.createElement('a');
+  link.download = 'engajamento-24h.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+function exportCSV() {
+  if(!allData.length) return;
+  const header = 'data,curtidas,comentarios,reposts,views,engajamento\n';
+  const rows = allData.map(r => {
+    const eng = (r.curtidas||0)+(r.comentarios||0)+(r.reposts||0);
+    return `"${r.data || r.datetime || r.created_at}",${r.curtidas},${r.comentarios},${r.reposts},${r.views},${eng}`;
+  }).join('\n');
+  const blob = new Blob([header + rows], {type:'text/csv'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'monitoramento.csv';
+  link.click();
+}
+
+// ===== INIT =====
+drawGauge(3);
+loadDemoData();
+// Auto-refresh every 5 minutes
+setInterval(refreshData, 5 * 60 * 1000);
+</script>
+</body>
+</html>
